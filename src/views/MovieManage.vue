@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="button-area">
-      <Button type="success">添加电影</Button>
+      <Button type="success" @click="initCreateModal">添加电影</Button>
     </div>
     <div class="table-area">
       <Table size="medium" :columns="movieTableCols" :data="movieListFormatting"></Table>
@@ -9,53 +9,23 @@
     <div class="page-area">
       <Page :total="movieAmount" show-elevator></Page>
     </div>
-    <div class="">
+    <div>
       <Modal
         v-model="movieInfoModal"
         title="电影详情"
         :loading="true"
         @on-ok="updateMovieInfo">
-        <div>
-          <Row>
-            <Col span="8">
-              <div class="movie-poster">
-                <img :src="currentMovie.poster" height="240" width="150" alt="movie-poster" />
-              </div>
-              <div class="poster-upload">
-                <Upload action="/api/movie/poster" name="poster">
-                  <Button type="ghost" icon="ios-cloud-upload-outline">上传海报</Button>
-                </Upload>
-              </div>
-            </Col>
-            <Col span="16">
-              <div>
-                <Form :model="currentMovie" :label-width="80">
-                  <FormItem label="电影名">
-                    <Input v-model="currentMovie.title" placeholder="Movie title"></Input>
-                  </FormItem>
-                  <FormItem label="导演">
-                    <Input v-model="currentMovie.director" placeholder="Director"></Input>
-                  </FormItem>
-                  <FormItem label="状态">
-                    <Select v-model="currentMovie.status">
-                      <Option value="0">即将上映</Option>
-                      <Option value="1">正在热映</Option>
-                      <Option value="2">已经下映</Option>
-                    </Select>
-                  </FormItem>
-                  <FormItem label="演员">
-                    <Input v-model="currentMovie.actors" placeholder="Actors"></Input>
-                  </FormItem>
-                  <FormItem label="标签">
-                    <Input v-model="currentMovie.tags" placeholder="Tags"></Input>
-                  </FormItem>
-                  </FormItem>
-                </Form>
-              </div>
-            </Col>
-          </Row>
-        </div>
-    </Modal>
+        <movie-item-edit :currentMovie="currentMovie" @movieChanged="currentMovieChange"></movie-item-edit>
+      </Modal>
+    </div>
+    <div>
+      <Modal
+        v-model="movieCreateModal"
+        title="创建电影"
+        :loading="true"
+        @on-ok="createMovie">
+        <movie-item-edit :currentMovie="currentMovie" @movieChanged="currentMovieChange"></movie-item-edit>
+      </Modal>
     </div>
   </div>
 </template>
@@ -68,28 +38,25 @@
 .table-area{
   margin: 15px 0;
 }
-
-.movie-poster {
-  text-align: center;
-  margin-bottom: 5px;
-}
-
-.poster-upload {
-  text-align: center;
-}
 </style>
 
 <script>
+import MovieItemEdit from '../components/MovieItemEdit'
+
 export default {
   data() {
     return {
       movieAmount: 102,
       movieInfoModal: false,
+      movieCreateModal: false,
       currentMovie: {
         movie_id: -1,
         title: '',
         director: '',
         status: '',
+        poster: '',
+        actors: '',
+        tags: ''
       },
 
       movieTableCols: [
@@ -222,7 +189,34 @@ export default {
 
     updateMovieInfo() {
       this.movieInfoModal = false
+    },
+
+    initCreateModal() {
+      this.currentMovie = {
+        movie_id: -1,
+        title: '',
+        director: '',
+        status: '',
+        poster: '',
+        actors: '',
+        tags: ''
+      }
+
+      this.movieCreateModal = true
+    },
+
+    createMovie() {
+      this.movieCreateModal = false
+    },
+
+    currentMovieChange(data) {
+      this.currentMovie = data
+      console.log(this.currentMovie)
     }
+  },
+
+  components: {
+    MovieItemEdit
   }
 }
 </script>
