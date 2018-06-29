@@ -7,13 +7,14 @@
       <Table size="medium" :columns="movieTableCols" :data="movieListFormatting"></Table>
     </div>
     <div class="page-area">
-      <Page :total="movieAmount" show-elevator></Page>
+      <Page :total="movieAmount" :current="currentPage"  @on-change="pageChange" show-elevator></Page>
     </div>
     <div>
       <Modal
         v-model="movieInfoModal"
         title="电影详情"
         :loading="true"
+        okText="更新影片"
         @on-ok="updateMovieInfo">
         <movie-item-edit :currentMovie="currentMovie" @movieChanged="currentMovieChange"></movie-item-edit>
       </Modal>
@@ -23,6 +24,7 @@
         v-model="movieCreateModal"
         title="创建电影"
         :loading="true"
+        okText="创建影片"
         @on-ok="createMovie">
         <movie-item-edit :currentMovie="currentMovie" @movieChanged="currentMovieChange"></movie-item-edit>
       </Modal>
@@ -42,11 +44,14 @@
 
 <script>
 import MovieItemEdit from '../components/MovieItemEdit'
+import axios from 'axios';
 
 export default {
   data() {
     return {
-      movieAmount: 102,
+      movieAmount: 0,
+      currentPage: 1,
+
       movieInfoModal: false,
       movieCreateModal: false,
       currentMovie: {
@@ -111,44 +116,7 @@ export default {
         }
       ],
 
-      movieList: [
-        {
-          movie_id: 7,
-          title: "The Dark Knight",
-          director: 'Christopher Nolan',
-          poster: "/images/poster/the-dark-knight.jpg",
-          status: 1,
-          actors: ['actor1', 'actor2', 'actor3'],
-          tags: ['tag1', 'tag2']
-        },
-        {
-          movie_id: 8,
-          title: "Inception",
-          director: 'Christopher Nolan',
-          poster: "/images/poster/inception.jpg",
-          status: 1,
-          actors: ['actor1', 'actor2', 'actor3'],
-          tags: ['tag1', 'tag2']
-        },
-        {
-          movie_id: 9,
-          title: "Dunkirk",
-          director: 'Christopher Nolan',
-          poster: "/images/poster/dunkirk.jpg",
-          status: 1,
-          actors: ['actor1', 'actor2', 'actor3'],
-          tags: ['tag1', 'tag2']
-        },
-        {
-          movie_id: 10,
-          title: "Interstellar",
-          director: 'Christopher Nolan',
-          poster: "/images/poster/interstellar.jpg",
-          status: 1,
-          actors: ['actor1', 'actor2', 'actor3'],
-          tags: ['tag1', 'tag2']
-        }
-      ]
+      movieList: []
     }
   },
 
@@ -172,23 +140,36 @@ export default {
       this.movieInfoModal = true
 
       this.currentMovie = {
+        index: index,
         movie_id: this.movieListFormatting[index].movie_id,
         title: this.movieListFormatting[index].title,
         director: this.movieListFormatting[index].director,
         status: this.movieListFormatting[index].status.toString(),
         poster: this.movieListFormatting[index].poster,
         actors: this.movieListFormatting[index].actors.reduce((x, y) => {
-          return x + ',' + y + ','
+          return x + ',' + y
         }),
         tags: this.movieListFormatting[index].tags.reduce((x, y) => {
-          return x + ',' + y + ','
+          return x + ',' + y
         })
       }
       console.log(this.currentMovie)
     },
 
-    updateMovieInfo() {
-      this.movieInfoModal = false
+    pageChange(page) {
+      let pageSize = 10
+      let vm = this
+
+      axios.get(`/api/movies/page/${page}/page_size/${pageSize}`)
+      .then((res) => {
+        vm.movieAmount = res.data.data.movie_amount
+        vm.movieList = res.data.data.movies
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+
+      console.log(this.currentPage)
     },
 
     initCreateModal() {
@@ -205,8 +186,46 @@ export default {
       this.movieCreateModal = true
     },
 
+    updateMovieInfo() {
+      let vm = this
+      axios.patch(`/api/movie/${vm.currentMovie.movie_id}/status`, {
+        status: vm.currentMovie.status
+      })
+      .then(res => {
+        console.log(res)
+        vm.movieList[vm.currentMovie.index].status = res.data.data.status
+        vm.$Message.success(res.data.message)
+        vm.movieInfoModal = false
+      })
+      .catch(err => {
+        vm.$Message.error(err)
+        vm.movieInfoModal = false
+      })
+    },
+
     createMovie() {
-      this.movieCreateModal = false
+      let vm = this
+      axios.post(`/api/movie`, {
+        movie_title: vm.currentMovie.title,
+        poster: vm.currentMovie.poster,
+        director: vm.currentMovie.director,
+        actors: vm.currentMovie.actors.split(',').filter(item => {
+          return item !== ''
+        }),
+        tags: vm.currentMovie.tags.split(',').filter(item => {
+          return item !== ''
+        }),
+        status: vm.currentMovie.status
+      })
+      .then(res => {
+        console.log(res)
+        this.$Message.success(res.data.message);
+        vm.movieCreateModal = false
+      })
+      .catch(err => {
+        console.log(res)
+        vm.movieCreateModal = false
+      })
     },
 
     currentMovieChange(data) {
@@ -217,6 +236,22 @@ export default {
 
   components: {
     MovieItemEdit
+  },
+
+  created() {
+    let page = 1
+    let pageSize = 10
+    let vm = this
+    axios.get(`/api/movies/page/${page}/page_size/${pageSize}`)
+    .then((res) => {
+      vm.movieAmount = res.data.data.movie_amount
+      vm.movieList = res.data.data.movies
+    })
+    .catch((err) => {
+      console.log(err)
+    })
+
+    this.currentPage = 1
   }
 }
 </script>

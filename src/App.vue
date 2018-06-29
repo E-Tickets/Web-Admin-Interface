@@ -7,7 +7,7 @@
                     <div class="layout-nav">
                         <MenuItem name="1">
                           <div  @click="loginModal = true">
-                            管理员登录
+                            {{ loginMsg }}
                           </div>
                         </MenuItem>
                     </div>
@@ -28,7 +28,7 @@
             </Layout>
         </Layout>
 
-        <div id="modal">
+        <div id="modal" v-if="!adminUsername">
           <Modal
               v-model="loginModal"
               title="管理员登录"
@@ -83,6 +83,8 @@
 </style>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'App',
   data() {
@@ -91,6 +93,10 @@ export default {
       activePage: '',
       loginModal: false,
       loading: true,
+
+      loginMsg: '',
+
+      adminUsername: '',
 
       loginForm: {
         username: '',
@@ -101,20 +107,43 @@ export default {
 
   methods: {
     adminLogin() {
-      setTimeout(() => {
-        this.loginModal = false
-      }, 100)
+      let vm = this
+      axios.post('/api/session/admin', {
+        username: vm.loginForm.username,
+        password: vm.loginForm.password
+      })
+      .then((res) => {
+        vm.loginModal = false
+        this.$Message.success(`Hello, ${res.data.data.admin_username}`)
+        this.adminUsername = res.data.data.admin_username
+        this.loginMsg = `Hello, ${this.adminUsername}`
+        console.log(res)
+      })
+      .catch((res) => {
+        vm.loginModal = false
+        console.log(err)
+      })
     },
 
     cancelLogin() {
-      this.loginForm.username = '';
-      this.loginForm.password = '';
+      this.loginForm.username = ''
+      this.loginForm.password = ''
     }
   },
 
   created() {
     this.currentPage = '电影管理'
     this.activePage = 'movieList'
+
+    axios.get(`/api/admin/self`)
+    .then(res => {
+      this.adminUsername = res.data.data.username
+      this.loginMsg = `Hello, ${this.adminUsername}`
+    })
+    .catch(res => {
+      this.adminUsername = ''
+      this.loginMsg = `管理员登录`
+    })
   }
 }
 </script>

@@ -1,17 +1,17 @@
 <template>
   <div>
     <Row>
-      <Col span="8">
+      <Col span="10">
         <div class="movie-poster">
           <img :src="currentMovie.poster" height="240" width="150" alt="movie-poster" v-if="currentMovie.poster" />
         </div>
         <div class="poster-upload">
-          <Upload action="/api/movie/poster" name="poster">
+          <Upload action="/api/movie/poster" name="poster" :on-success="imgUploadSuccess">
             <Button type="ghost" icon="ios-cloud-upload-outline">上传海报</Button>
           </Upload>
         </div>
       </Col>
-      <Col span="16">
+      <Col span="14">
         <div>
           <Form :model="currentMovie" :label-width="80">
             <FormItem label="电影名">
@@ -60,6 +60,12 @@ export default {
   methods: {
     movieInfoChange() {
       this.$emit('movieChanged', this.currentMovie)
+    },
+
+    imgUploadSuccess(res) {
+      console.log(res)
+      this.currentMovie.poster = res.data.poster
+       this.$emit('movieChanged', this.currentMovie)
     }
   }
 }
